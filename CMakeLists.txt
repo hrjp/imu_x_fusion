@@ -193,6 +193,10 @@ add_executable(imu_gnss_ekf_node src/imu_gnss_ekf.cpp)
 set_target_properties(imu_gnss_ekf_node PROPERTIES COMPILE_DEFINITIONS EIGEN_NO_MALLOC)
 target_link_libraries(imu_gnss_ekf_node ${catkin_LIBRARIES} ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
 
+add_executable(imu_gnss_ekf_node_offline src/imu_gnss_ekf_offline.cpp)
+set_target_properties(imu_gnss_ekf_node_offline PROPERTIES COMPILE_DEFINITIONS EIGEN_NO_MALLOC)
+target_link_libraries(imu_gnss_ekf_node_offline ${catkin_LIBRARIES} ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+
 add_executable(imu_vo_ekf_node src/imu_vo_ekf.cpp)
 target_link_libraries(imu_vo_ekf_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
