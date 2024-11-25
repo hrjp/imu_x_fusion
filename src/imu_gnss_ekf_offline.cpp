@@ -39,13 +39,14 @@ class FusionNode {
     std::string topic_imu = "/imu/data";
     std::string topic_gps = "/fix";
 
-    imu_sub_ = nh.subscribe<sensor_msgs::Imu>(topic_imu, 10, boost::bind(&FusionNode::imu_callback, this, _1));
+    // imu_sub_ = nh.subscribe<sensor_msgs::Imu>(topic_imu, 10, boost::bind(&FusionNode::imu_callback, this, _1));
 
-    gps_sub_ = nh.subscribe(topic_gps, 10, &FusionNode::gps_callback, this);
+    // gps_sub_ = nh.subscribe(topic_gps, 10, &FusionNode::gps_callback, this);
 
     // log files
     file_gps_.open("fusion_gps.csv");
     file_state_.open("fusion_state.csv");
+    offlineProcess();
   }
 
   ~FusionNode() {
@@ -58,8 +59,8 @@ class FusionNode {
   void readCSVTo2DArray(const std::string& filename, std::vector<std::vector<std::string>>& data);
   void offlineProcess();
  private:
-  ros::Subscriber imu_sub_;
-  ros::Subscriber gps_sub_;
+  // ros::Subscriber imu_sub_;
+  // ros::Subscriber gps_sub_;
 
   EKFPtr ekf_ptr_;
   Viewer viewer_;
@@ -154,23 +155,66 @@ void FusionNode::readCSVTo2DArray(const std::string& filename, std::vector<std::
     }
 
     std::string line;
+    std::getline(file, line);
     while (std::getline(file, line)) {
-        std::vector<std::string> row;
-        std::stringstream lineStream(line);
-        std::string cell;
+      // header skip
+      if(!('0'<=line[0] and line[0] <='9')){
+        continue;
+      }
+      std::vector<std::string> row;
+      std::stringstream lineStream(line);
+      std::string cell;
 
-        while (std::getline(lineStream, cell, ',')) {
-            row.push_back(cell);
-        }
+      while (std::getline(lineStream, cell, ',')) {
+          row.push_back(cell);
+      }
 
-        data.push_back(row);
+      data.push_back(row);
     }
 
     file.close();
 }
 
 void FusionNode::offlineProcess(){
+  ROS_INFO("Offline process start");
+  std::vector<std::vector<std::string>> imu_data;
+  std::vector<std::vector<std::string>> gnss_data;
+  readCSVTo2DArray(imu_path, imu_data);
+  readCSVTo2DArray(gnss_path, gnss_data);
+  int imu_idx=0;
+  int i=0;
+  for(const auto& gnss_msg : gnss_data){
+    sensor_msgs::NavSatFix navsat_msg;
+    navsat_msg.header.stamp=ros::Time(std::stod(gnss_msg[1]));
+    navsat_msg.header.frame_id="gps";
+    navsat_msg.header.seq=i;
+    i++;
+    navsat_msg.status.status=sensor_msgs::NavSatStatus::STATUS_GBAS_FIX;
+    navsat_msg.latitude=std::stod(gnss_msg[2]);
+    navsat_msg.longitude=std::stod(gnss_msg[3]);
+    navsat_msg.altitude=std::stod(gnss_msg[4]);
+    navsat_msg.position_covariance={
+      std::stod(gnss_msg[7]),std::stod(gnss_msg[10]),std::stod(gnss_msg[12]),
+      std::stod(gnss_msg[10]),std::stod(gnss_msg[8]),std::stod(gnss_msg[11]),
+      std::stod(gnss_msg[12]),std::stod(gnss_msg[11]),std::stod(gnss_msg[9])
+    };
+    sensor_msgs::NavSatFixConstPtr navsat_msg_ptr=boost::make_shared<sensor_msgs::NavSatFix>(navsat_msg);
+    gps_callback(navsat_msg_ptr);
 
+    for(int j=0; j<20; j++){
+      Eigen::Vector3d acc, gyr;
+      acc[0] = std::stod(imu_data[imu_idx][2]);
+      acc[1] = std::stod(imu_data[imu_idx][3]);
+      acc[2] = std::stod(imu_data[imu_idx][4]);
+      gyr[0] = std::stod(imu_data[imu_idx][5]);
+      gyr[1] = std::stod(imu_data[imu_idx][6]);
+      gyr[2] = std::stod(imu_data[imu_idx][7]);
+      ekf_ptr_->predict(std::make_shared<ImuData>(std::stod(imu_data[imu_idx][0]), acc, gyr));
+      imu_idx++;
+    }
+
+  }
+  ROS_INFO("Offline process finish");
 }
 
 
@@ -182,7 +226,7 @@ int main(int argc, char **argv) {
 
   ros::NodeHandle nh;
   cg::FusionNode fusion_node(nh);
-  //ros::spin();
+  ros::spin();
 
   return 0;
 }
