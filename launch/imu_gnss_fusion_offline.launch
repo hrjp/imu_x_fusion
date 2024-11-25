@@ -1,10 +1,11 @@
 <launch>
-    <param name="acc_noise"       type="double" value="1e-2" />
-    <param name="gyr_noise"       type="double" value="1e-4" />
-    <param name="acc_bias_noise"  type="double" value="1e-6" />
-    <param name="gyr_bias_noise"  type="double" value="1e-8" />
+    <param name="acc_noise"       type="double" value="48e-4" />
+    <param name="gyr_noise"       type="double" value="14e-5" />
+    <param name="acc_bias_noise"  type="double" value="26e-6" />
+    <param name="gyr_bias_noise"  type="double" value="4e-2" />
     <param name="imu_path" value="$(find imu_x_fusion)/dataset/train/tokyo1/imu.csv" />
     <param name="gnss_path" value="$(find imu_x_fusion)/dataset/train/tokyo1/tokyo1.pos" />
+    <param name="result_path" value="$(find imu_x_fusion)/result/tokyo1.csv" />
 
     <node name="imu_gnss_ekf_node_offline" pkg="imu_x_fusion" type="imu_gnss_ekf_node_offline" output="screen" />
 

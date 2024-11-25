@@ -44,7 +44,7 @@ class FusionNode {
     // gps_sub_ = nh.subscribe(topic_gps, 10, &FusionNode::gps_callback, this);
 
     // log files
-    file_gps_.open("fusion_gps.csv");
+    file_gps_.open(result_path);
     file_state_.open("fusion_state.csv");
     offlineProcess();
   }
@@ -105,17 +105,17 @@ void FusionNode::gps_callback(const sensor_msgs::NavSatFixConstPtr &gps_msg) {
 
     printf("[cggos %s] System initialized.\n", __FUNCTION__);
 
-    return;
+    //return;
   }
 
-  std::cout << "---------------------" << std::endl;
+  //std::cout << "---------------------" << std::endl;
 
   const Eigen::Isometry3d &Twb = ekf_ptr_->state_ptr_->pose();
   const auto &p_G_Gps = std::dynamic_pointer_cast<GNSS>(ekf_ptr_->observer_ptr_)->g2l(gps_data_ptr);
 
   const auto &residual = ekf_ptr_->observer_ptr_->measurement_residual(Twb.matrix(), p_G_Gps);
 
-  std::cout << "res: " << residual.transpose() << std::endl;
+  //std::cout << "res: " << residual.transpose() << std::endl;
 
   const auto &H = ekf_ptr_->observer_ptr_->measurement_jacobian(Twb.matrix(), p_G_Gps);
 
@@ -125,9 +125,9 @@ void FusionNode::gps_callback(const sensor_msgs::NavSatFixConstPtr &gps_msg) {
   ekf_ptr_->update_P(H, R, K);
   *ekf_ptr_->state_ptr_ = *ekf_ptr_->state_ptr_ + K * residual;
 
-  std::cout << "acc bias: " << ekf_ptr_->state_ptr_->acc_bias.transpose() << std::endl;
-  std::cout << "gyr bias: " << ekf_ptr_->state_ptr_->gyr_bias.transpose() << std::endl;
-  std::cout << "---------------------" << std::endl;
+  // std::cout << "acc bias: " << ekf_ptr_->state_ptr_->acc_bias.transpose() << std::endl;
+  // std::cout << "gyr bias: " << ekf_ptr_->state_ptr_->gyr_bias.transpose() << std::endl;
+  // std::cout << "---------------------" << std::endl;
 
   // save data
   {
